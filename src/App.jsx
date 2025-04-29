@@ -8,6 +8,7 @@ import Locations from "./pages/Locations";
 import Procurements from "./pages/procurements";
 import DiscardedItems from "./pages/discardeditems";
 import Loginpage from "./pages/loginpage";
+import Inventory from "./pages/Inventory";
 
 function App() {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -29,6 +30,7 @@ function App() {
           <Route path="/items" element={<Items />} />
           <Route path="/procurements" element={<Procurements />} />
           <Route path="/discardeditems" element={<DiscardedItems />} />
+          <Route path="/inventory" element={<Inventory/>} />
         </Routes>
       </div>
     </Router>
