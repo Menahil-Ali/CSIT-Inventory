@@ -1,7 +1,375 @@
+/*import { useState } from "react";                     //the new form is here just in case//
+import { FaTimes, FaPlus, FaMinus } from "react-icons/fa";
+
+const AddProcurementForm = ({ onClose, onSubmit }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [items, setItems] = useState([
+    { name: "", category: "Furniture and Fixture", quantity: 1, unitPrice: "" }
+  ]);
+  const [formData, setFormData] = useState({
+    orderNumber: "",
+    supplier: "",
+    date: "",
+    notes: "",
+    documentType: "",
+    documentFile: null,
+    addedBy: "Current User" // This would be dynamic in a real app
+  });
+
+  const categories = ["Furniture and Fixture", "Consumable", "Deadstock"];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleItemChange = (index, e) => {
+    const { name, value } = e.target;
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [name]: value };
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    setItems([...items, { name: "", category: "Furniture and Fixture", quantity: 1, unitPrice: "" }]);
+  };
+
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      const newItems = [...items];
+      newItems.splice(index, 1);
+      setItems(newItems);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setFormData(prev => ({ ...prev, documentFile: e.target.files[0] }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const documentData = formData.documentFile ? {
+      type: formData.documentFile.name.split('.').pop(),
+      name: formData.documentFile.name,
+      url: URL.createObjectURL(formData.documentFile)
+    } : null;
+
+    const submissionData = {
+      ...formData,
+      items: items.map(item => ({
+        name: item.name,
+        type: item.category, // Using category as type
+        quantity: Number(item.quantity),
+        unitPrice: item.unitPrice.includes('$') ? item.unitPrice : `$${item.unitPrice}`,
+        total: `$${(Number(item.quantity) * parseFloat(item.unitPrice || 0)).toFixed(2)}`
+      })),
+      document: documentData,
+      documentType: formData.documentType || "Purchase Order", // Default if not specified
+      addedBy: formData.addedBy,
+      status: "Pending" // Default status for new procurements
+    };
+
+    onSubmit(submissionData);
+  };
+
+  const nextStep = () => setCurrentStep(currentStep + 1);
+  const prevStep = () => setCurrentStep(currentStep - 1);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="p-6 overflow-y-auto flex-1">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-xl font-semibold">Add New Procurement</h3>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <FaTimes />
+            </button>
+          </div>
+          
+          <p className="text-gray-600 mb-6">Add a new procurement to your inventory</p>
+          
+          <div className="flex border-b mb-6">
+            <button
+              className={`px-4 py-2 font-medium ${currentStep === 1 ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              onClick={() => setCurrentStep(1)}
+            >
+              Items
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${currentStep === 2 ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              onClick={() => setCurrentStep(2)}
+            >
+              Order Details
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${currentStep === 3 ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+              onClick={() => setCurrentStep(3)}
+            >
+              Documentation
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit}>
+            {currentStep === 1 && (
+              <div className="space-y-4" style={{ minHeight: '400px' }}>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">Items</h4>
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    <FaPlus className="mr-1" /> Add Item
+                  </button>
+                </div>
+                
+                {items.map((item, index) => (
+                  <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium">Item #{index + 1}</span>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          <FaMinus />
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Item Name *</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={item.name}
+                          onChange={(e) => handleItemChange(index, e)}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+                        <select
+                          name="category"
+                          value={item.category}
+                          onChange={(e) => handleItemChange(index, e)}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                          required
+                        >
+                          {categories.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                        <input
+                          type="number"
+                          name="quantity"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, e)}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                          required
+                          min="1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Unit Price *</label>
+                        <input
+                          type="number"
+                          name="unitPrice"
+                          value={item.unitPrice}
+                          onChange={(e) => handleItemChange(index, e)}
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                          required
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-end mt-6">
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={items.some(item => !item.name || !item.quantity || !item.unitPrice)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {currentStep === 2 && (
+              <div className="space-y-4" style={{ minHeight: '400px' }}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Order Number *</label>
+                  <input
+                    type="text"
+                    name="orderNumber"
+                    value={formData.orderNumber}
+                    onChange={handleChange}
+                    placeholder="e.g. PO-2023-001"
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier *</label>
+                  <input
+                    type="text"
+                    name="supplier"
+                    value={formData.supplier}
+                    onChange={handleChange}
+                    placeholder="Enter supplier name"
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Enter additional notes about this procurement"
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="3"
+                  />
+                </div>
+                
+                <div className="flex justify-between mt-6">
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={!formData.orderNumber || !formData.supplier || !formData.date}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {currentStep === 3 && (
+              <div className="space-y-4 pb-6" style={{ minHeight: '400px' }}>
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Document Type</h3>
+                  <select
+                    name="documentType"
+                    value={formData.documentType}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select document type</option>
+                    <option value="Purchase Order">Purchase Order</option>
+                    <option value="MOU">Memorandum of Understanding</option>
+                    <option value="Internal Memo">Internal Memo</option>
+                    <option value="Invoice">Invoice</option>
+                  </select>
+                </div>
+                
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-2">Upload Document</h3>
+                  <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      className="hidden"
+                      id="documentUpload"
+                    />
+                    <label
+                      htmlFor="documentUpload"
+                      className="cursor-pointer block"
+                    >
+                      <p className="text-sm text-gray-600">Drag and drop files here or click to browse</p>
+                      <p className="text-xs text-gray-500 mt-1">PDF, DOC, JPG or PNG (max. 5MB)</p>
+                    </label>
+                    {formData.documentFile && (
+                      <p className="text-sm text-green-600 mt-2">
+                        {formData.documentFile.name} selected
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {currentStep === 3 && (
+          <div className="p-4 border-t bg-white sticky bottom-0">
+            <div className="flex justify-between">
+              <button
+                type="button"
+                onClick={prevStep}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Back
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Add Procurement
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AddProcurementForm;*/
 import { useState } from "react";
 import { FaTimes, FaPlus, FaMinus } from "react-icons/fa";
 
-const AddProcurementForm = ({ onClose, onSubmit, categories }) => {
+const AddProcurementForm = ({ onClose, onSubmit }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [items, setItems] = useState([
     { itemId: "", itemName: "", category: "1", quantity: "", unitPrice: "" }
@@ -79,23 +447,37 @@ const AddProcurementForm = ({ onClose, onSubmit, categories }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Format data to match procurement table structure
+    const formattedItems = items.map(item => ({
+      name: item.itemName || inventoryItems.find(i => i.id.toString() === item.itemId)?.name || "Custom Item",
+      quantity: parseInt(item.quantity),
+      unitPrice: item.unitPrice.includes('$') ? item.unitPrice : `$${item.unitPrice}`,
+      total: `$${(parseInt(item.quantity) * parseFloat(item.unitPrice || 0)).toFixed(2)}`,
+      type: "Purchase" // Default type as shown in your table
+    }));
+
     const documentData = formData.documentFile ? {
-      type: formData.documentFile.type.split('/')[1] || 'file',
+      type: formData.documentFile.name.split('.').pop(),
       name: formData.documentFile.name,
       url: URL.createObjectURL(formData.documentFile)
     } : null;
-    
+
     const submissionData = {
-      ...formData,
-      items: items.map(item => ({
-        ...item,
-        quantity: parseInt(item.quantity),
-        unitPrice: parseFloat(item.unitPrice),
-        categoryId: parseInt(item.category)
-      })),
-      document: documentData
+      orderNumber: `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`, // Auto-generate PO number
+      items: formattedItems,
+      supplier: formData.supplier,
+      date: new Date(formData.procurementDate).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      }),
+      documentType: formData.documentType || "Purchase Order",
+      addedBy: "Current User", // This would be dynamic in a real app
+      document: documentData,
+      notes: formData.notes
     };
-    
+
     onSubmit(submissionData);
   };
 
@@ -196,7 +578,7 @@ const AddProcurementForm = ({ onClose, onSubmit, categories }) => {
                               <option value="">Select an item</option>
                               {getFilteredItems().map((invItem) => (
                                 <option key={invItem.id} value={invItem.id}>
-                                  {invItem.name} - {categories.find(c => c.id.toString() === invItem.category)?.name}
+                                  {invItem.name}
                                 </option>
                               ))}
                               <option value="new">+ Add New Item</option>
@@ -226,11 +608,9 @@ const AddProcurementForm = ({ onClose, onSubmit, categories }) => {
                                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                                   required
                                 >
-                                  {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                      {category.name}
-                                    </option>
-                                  ))}
+                                  <option value="1">Furniture and Fixture</option>
+                                  <option value="2">Consumable</option>
+                                  <option value="3">Deadstock</option>
                                 </select>
                               </div>
                             </>
