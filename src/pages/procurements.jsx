@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import AddProcurementForm from "../components/addprocurementform";
+import AddProcurementForm from "../components/AddProcurementForm";
+import { categories } from "../constants/categories";
 
 const Procurements = () => {
   const [procurements, setProcurements] = useState([]);
@@ -38,22 +39,6 @@ const Procurements = () => {
           totalAmount: 5350.00,
           document: { type: "image", name: "receipt.jpg", url: "#" },
         },
-        {
-          id: 3,
-          orderNumber: "PO-2023-003",
-          supplier: "Tech Solutions Inc.",
-          orderDate: "4/20/2023",
-          totalAmount: 51000.00,
-          document: null,
-        },
-        {
-          id: 4,
-          orderNumber: "PO-2023-004",
-          supplier: "Furniture Corp.",
-          orderDate: "3/10/2023",
-          totalAmount: 52100.00,
-          document: { type: "doc", name: "order.doc", url: "#" },
-        },
       ];
       setProcurements(mockData);
     } finally {
@@ -89,11 +74,14 @@ const Procurements = () => {
 
   const handleDocumentClick = (document) => {
     if (document) {
-      // In a real app, this would open the document
-      console.log("Opening document:", document.url);
-      // window.open(document.url, '_blank');
       alert(`Opening document: ${document.name}`);
     }
+  };
+
+  // Function to create a new item (mock implementation)
+  const createNewItem = async (itemData) => {
+    console.log("Creating new item:", itemData);
+    return { success: true, item: itemData };
   };
 
   return (
@@ -320,16 +308,27 @@ const Procurements = () => {
 
       {/* Add Procurement Form */}
       {showForm && (
-        <AddProcurementForm 
-          onClose={() => setShowForm(false)} 
-          onSubmit={(data) => {
-            console.log("New procurement:", data);
-            setShowForm(false);
-            handleRefresh(); // Refresh the list after adding
-          }} 
-        />
-      )}
-    </>
+              <AddProcurementForm 
+                categories={categories}
+                onClose={() => setShowForm(false)} 
+                onSubmit={async (data) => {
+                  console.log("New procurement:", data);
+                  
+                  // If this is a new item (not selected from existing inventory)
+                  if (!data.itemId || data.itemId === "") {
+                    // Create the new item
+                    const itemResponse = await createNewItem(data.newItem);
+                    if (itemResponse.success) {
+                      console.log("Item created successfully:", itemResponse.item);
+                    }
+                  }
+                  
+                  setShowForm(false);
+                  handleRefresh();
+                }} 
+              />
+            )}
+         </>
   );
 };
 

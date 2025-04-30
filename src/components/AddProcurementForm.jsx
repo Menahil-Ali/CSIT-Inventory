@@ -1,47 +1,80 @@
 import { useState } from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaPlus, FaMinus } from "react-icons/fa";
 
-const AddProcurementForm = ({ onClose, onSubmit }) => {
+const AddProcurementForm = ({ onClose, onSubmit, categories }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [items, setItems] = useState([
+    { itemId: "", itemName: "", category: "1", quantity: "", unitPrice: "" }
+  ]);
   const [formData, setFormData] = useState({
-    itemId: "",
-    itemName: "",
-    procurementType: "Purchase",
+    procurementType: "",
     supplier: "",
-    quantity: "",
-    unitPrice: "",
     procurementDate: "",
     notes: "",
     documentType: "",
     documentFile: null
   });
 
+  // Inventory items with procurement type included
   const inventoryItems = [
-    "Damaged Computer Monitor - Deadstock",
-    "Obsolete CPUs - Deadstock",
-    "Office Desk - Furniture & Fixture",
-    "Executive Chair - Furniture & Fixture",
-    "Conference Table - Furniture & Fixture",
-    "Printer Paper - Consumable",
-    "Ink Cartridges - Consumable",
-    "Keyboard - Consumable",
-    "Mouse - Consumable",
-    "Filing Cabinet - Furniture & Fixture"
+    { id: 1, name: "New Laptop", category: "1", procurementType: "Purchase" },
+    { id: 2, name: "Printer", category: "1", procurementType: "Purchase" },
+    { id: 3, name: "Office Desk", category: "3", procurementType: "Purchase" },
+    { id: 4, name: "Used Computer", category: "2", procurementType: "Donation" },
+    { id: 5, name: "Old Furniture", category: "3", procurementType: "Donation" },
+    { id: 6, name: "Department Chair", category: "3", procurementType: "Transfer" },
+    { id: 7, name: "Shared Equipment", category: "1", procurementType: "Transfer" }
   ];
+
+  // Filter items based on selected procurement type
+  const getFilteredItems = () => {
+    if (!formData.procurementType) return [];
+    return inventoryItems.filter(item => item.procurementType === formData.procurementType);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Reset items when procurement type changes
+    if (name === "procurementType") {
+      setItems([{ itemId: "", itemName: "", category: "1", quantity: "", unitPrice: "" }]);
+    }
+  };
+
+  const handleItemChange = (index, e) => {
+    const { name, value } = e.target;
+    const newItems = [...items];
+    
+    if (name === "itemId") {
+      const selectedItem = inventoryItems.find(item => item.id.toString() === value);
+      newItems[index] = {
+        ...newItems[index],
+        itemId: value,
+        itemName: selectedItem ? selectedItem.name : "",
+        category: selectedItem ? selectedItem.category : "1"
+      };
+    } else {
+      newItems[index] = { ...newItems[index], [name]: value };
+    }
+    
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    setItems([...items, { itemId: "", itemName: "", category: "1", quantity: "", unitPrice: "" }]);
+  };
+
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      const newItems = [...items];
+      newItems.splice(index, 1);
+      setItems(newItems);
+    }
   };
 
   const handleFileChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      documentFile: e.target.files[0]
-    }));
+    setFormData(prev => ({ ...prev, documentFile: e.target.files[0] }));
   };
 
   const handleSubmit = (e) => {
@@ -52,10 +85,18 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
       url: URL.createObjectURL(formData.documentFile)
     } : null;
     
-    onSubmit({
+    const submissionData = {
       ...formData,
+      items: items.map(item => ({
+        ...item,
+        quantity: parseInt(item.quantity),
+        unitPrice: parseFloat(item.unitPrice),
+        categoryId: parseInt(item.category)
+      })),
       document: documentData
-    });
+    };
+    
+    onSubmit(submissionData);
   };
 
   const nextStep = () => setCurrentStep(currentStep + 1);
@@ -67,17 +108,13 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
         <div className="p-6 overflow-y-auto flex-1">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-semibold">Add New Procurement</h3>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
               <FaTimes />
             </button>
           </div>
           
           <p className="text-gray-600 mb-6">Add a new procurement to your inventory</p>
           
-          {/* Form Steps Navigation */}
           <div className="flex border-b mb-6">
             <button
               className={`px-4 py-2 font-medium ${currentStep === 1 ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
@@ -100,57 +137,8 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
           </div>
           
           <form onSubmit={handleSubmit}>
-            {/* Step 1: Basic Info */}
             {currentStep === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Item *</label>
-                  <select
-                    name="itemId"
-                    value={formData.itemId}
-                    onChange={(e) => {
-                      const selectedItem = inventoryItems[e.target.value];
-                      setFormData(prev => ({
-                        ...prev,
-                        itemId: e.target.value,
-                        itemName: selectedItem || ""
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select an item</option>
-                    {inventoryItems.map((item, index) => (
-                      <option key={index} value={index}>{item}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Select an existing item from inventory</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item ID *</label>
-                  <input
-                    type="text"
-                    value={formData.itemId ? parseInt(formData.itemId) + 1 : ""}
-                    readOnly
-                    className="w-full px-3 py-2 border rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
-                  <input
-                    type="text"
-                    name="itemName"
-                    value={formData.itemName}
-                    onChange={handleChange}
-                    placeholder="Enter item name"
-                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
+              <div className="space-y-4" style={{ minHeight: '400px' }}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Procurement Type *</label>
                   <select
@@ -160,32 +148,130 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
+                    <option value="">Select procurement type</option>
                     <option value="Purchase">Purchase</option>
                     <option value="Donation">Donation</option>
                     <option value="Transfer">Transfer</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    How this item was procured (purchased, donated, or transferred).
-                  </p>
                 </div>
-                
-                <div className="flex justify-between mt-6">
-                  <div></div>
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={!formData.itemId || !formData.itemName || !formData.procurementType}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
+
+                {formData.procurementType && (
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium">Items</h4>
+                      <button
+                        type="button"
+                        onClick={addItem}
+                        className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <FaPlus className="mr-1" /> Add Item
+                      </button>
+                    </div>
+                    
+                    {items.map((item, index) => (
+                      <div key={index} className="mb-4 p-3 border rounded-lg bg-gray-50">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Item #{index + 1}</span>
+                          {items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              <FaMinus />
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Item *</label>
+                            <select
+                              name="itemId"
+                              value={item.itemId}
+                              onChange={(e) => handleItemChange(index, e)}
+                              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                              required
+                            >
+                              <option value="">Select an item</option>
+                              {getFilteredItems().map((invItem) => (
+                                <option key={invItem.id} value={invItem.id}>
+                                  {invItem.name} - {categories.find(c => c.id.toString() === invItem.category)?.name}
+                                </option>
+                              ))}
+                              <option value="new">+ Add New Item</option>
+                            </select>
+                          </div>
+
+                          {item.itemId === "new" && (
+                            <>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Item Name *</label>
+                                <input
+                                  type="text"
+                                  name="itemName"
+                                  value={item.itemName}
+                                  onChange={(e) => handleItemChange(index, e)}
+                                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                  required
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+                                <select
+                                  name="category"
+                                  value={item.category}
+                                  onChange={(e) => handleItemChange(index, e)}
+                                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                                  required
+                                >
+                                  {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                      {category.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
+                          )}
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                            <input
+                              type="number"
+                              name="quantity"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, e)}
+                              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                              required
+                              min="1"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Unit Price *</label>
+                            <input
+                              type="number"
+                              name="unitPrice"
+                              value={item.unitPrice}
+                              onChange={(e) => handleItemChange(index, e)}
+                              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                              required
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             
-            {/* Step 2: Additional Details */}
             {currentStep === 2 && (
-              <div className="space-y-4">
+              <div className="space-y-4" style={{ minHeight: '400px' }}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Supplier / Source *</label>
                   <input
@@ -197,41 +283,6 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    The organization or person who provided this item.
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      min="1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price *</label>
-                    <input
-                      type="number"
-                      name="unitPrice"
-                      value={formData.unitPrice}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter 0 for donations or internal transfers.
-                    </p>
-                  </div>
                 </div>
                 
                 <div>
@@ -269,7 +320,7 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    disabled={!formData.supplier || !formData.quantity || !formData.unitPrice || !formData.procurementDate}
+                    disabled={!formData.supplier || !formData.procurementDate}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
                     Next
@@ -278,14 +329,10 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
               </div>
             )}
             
-            {/* Step 3: Documentation */}
             {currentStep === 3 && (
-              <div className="space-y-4 pb-6">
+              <div className="space-y-4 pb-6" style={{ minHeight: '400px' }}>
                 <div>
                   <h3 className="text-lg font-medium mb-2">Document Type</h3>
-                  <p className="text-sm text-gray-600 mb-4">Type of document associated with this procurement.</p>
-                  
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Select document type</label>
                   <select
                     name="documentType"
                     value={formData.documentType}
@@ -301,7 +348,6 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                 
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-2">Upload Document</h3>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Click to upload</label>
                   <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
                     <input
                       type="file"
@@ -324,22 +370,11 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                     )}
                   </div>
                 </div>
-                
-                <div className="mt-6 border-t pt-4">
-                  <h3 className="text-lg font-medium mb-2">Documentation Guidelines</h3>
-                  <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
-                    <li>All procurements should have either a purchase order, donation letter, or internal memo.</li>
-                    <li>For donated items, please upload the donor's letter or email.</li>
-                    <li>Ensure all documentation is properly dated and authorized.</li>
-                    <li>Sensitive information should be redacted before uploading.</li>
-                  </ul>
-                </div>
               </div>
             )}
           </form>
         </div>
 
-        {/* Sticky footer buttons - only for documentation step */}
         {currentStep === 3 && (
           <div className="p-4 border-t bg-white sticky bottom-0">
             <div className="flex justify-between">
@@ -360,7 +395,7 @@ const AddProcurementForm = ({ onClose, onSubmit }) => {
                 </button>
                 <button
                   type="submit"
-                  form="procurementForm"
+                  onClick={handleSubmit}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Add Procurement
