@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { categories, getCategoryName } from "../constants/categories";
 
 const Items = () => {
   const [items, setItems] = useState([]);
@@ -14,14 +15,6 @@ const Items = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Mock data for categories (replace with API calls)
-  const categories = [
-    { id: 1, name: 'Consumable' },
-    { id: 2, name: 'Deadstock' },
-    { id: 3, name: 'Furniture and Fixtures' }
-  ];
-
-  // Fetch items from API
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -33,28 +26,32 @@ const Items = () => {
             name: 'Microscope',
             description: 'Advanced lab microscope',
             categoryId: 3,
-            quantity: 5
+            quantity: 5,
+            unitPrice: 1200.00
           },
           {
             id: 2,
             name: 'Printer Paper',
             description: 'A4 size printer paper',
             categoryId: 1,
-            quantity: 50
+            quantity: 50,
+            unitPrice: 25.99
           },
           {
             id: 3,
             name: 'Office Chair',
             description: 'Ergonomic office chair',
             categoryId: 3,
-            quantity: 12
+            quantity: 12,
+            unitPrice: 199.99
           },
           {
             id: 4,
             name: 'Old Computer',
             description: 'Dell Optiplex 3020',
             categoryId: 2,
-            quantity: 8
+            quantity: 8,
+            unitPrice: 350.00
           }
         ];
         setItems(mockData);
@@ -65,7 +62,6 @@ const Items = () => {
     fetchItems();
   }, []);
 
-  // Filter items based on search and filters
   const filteredItems = items.filter((item) => {
     const matchesSearch = filterBy === "name" 
       ? item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -77,7 +73,6 @@ const Items = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
   const paginatedItems = filteredItems.slice(
     (currentPage - 1) * rowsPerPage,
@@ -86,17 +81,16 @@ const Items = () => {
 
   const handleAddItem = (newItem) => {
     if (editingItem) {
-      // Update existing item
       setItems(
         items.map((i) =>
           i.id === editingItem.id ? { ...newItem, id: editingItem.id } : i
         )
       );
     } else {
-      // Add new item
       const newItemWithId = {
         ...newItem,
         id: Math.max(...items.map((i) => i.id), 0) + 1,
+        categoryId: newItem.categoryId || 1
       };
       setItems([...items, newItemWithId]);
     }
@@ -115,10 +109,6 @@ const Items = () => {
     }
   };
 
-  const getCategoryName = (id) => {
-    return categories.find(c => c.id === id)?.name || 'Unknown';
-  };
-
   return (
     <>
       <Sidebar />
@@ -128,9 +118,7 @@ const Items = () => {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold">
-                  Manage inventory items
-                </h3>
+                <h3 className="text-lg font-semibold">Manage inventory items</h3>
               </div>
               <button
                 onClick={() => {
@@ -139,12 +127,11 @@ const Items = () => {
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
               >
-                <span className="mr-2">+</span>
+                <FaPlus className="mr-2" />
                 Add New Item
               </button>
             </div>
 
-            {/* Search and Filter Controls */}
             <div className="flex flex-col gap-4 mb-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -174,13 +161,10 @@ const Items = () => {
                       }}
                       className="flex-1 px-3 py-2 text-sm focus:outline-none"
                     />
-                    
                   </div>
-                 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-0"></label>
                   <select
                     value={categoryFilter}
                     onChange={(e) => {
@@ -211,7 +195,7 @@ const Items = () => {
                       setRowsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="border rounded px-3 py-2 text-sm"
+                    className="border rounded px-3 py-1 text-sm"
                   >
                     {[5, 10, 20, 50].map((num) => (
                       <option key={num} value={num}>
@@ -235,6 +219,7 @@ const Items = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
@@ -253,21 +238,21 @@ const Items = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {item.quantity}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${item.unitPrice?.toFixed(2) || '0.00'}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
                               onClick={() => handleEdit(item)}
                               className="text-blue-600 hover:text-blue-900 mr-3"
                             >
                               <FaEdit />
-                              {/* Edit */}
-                            
                             </button>
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="text-red-600 hover:text-red-900"
                             >
-                            <FaTrash />
-                              {/* Delete */}
+                              <FaTrash />
                             </button>
                           </td>
                         </tr>
@@ -276,7 +261,6 @@ const Items = () => {
                   </table>
                 </div>
 
-                {/* Pagination Controls */}
                 {filteredItems.length > 0 && (
                   <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
                     <div className="text-sm text-gray-600">
@@ -338,7 +322,6 @@ const Items = () => {
               </>
             )}
 
-            {/* Add/Edit Item Form Modal */}
             {showForm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
@@ -363,7 +346,8 @@ const Items = () => {
                       name: formData.get('name'),
                       description: formData.get('description'),
                       categoryId: parseInt(formData.get('categoryId')),
-                      quantity: parseInt(formData.get('quantity'))
+                      quantity: parseInt(formData.get('quantity')),
+                      unitPrice: parseFloat(formData.get('unitPrice') || 0)
                     };
                     handleAddItem(newItem);
                   }}>
@@ -407,6 +391,20 @@ const Items = () => {
                           name="quantity"
                           min="1"
                           defaultValue={editingItem?.quantity || 1}
+                          required
+                          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit Price*
+                        </label>
+                        <input
+                          type="number"
+                          name="unitPrice"
+                          min="0"
+                          step="0.01"
+                          defaultValue={editingItem?.unitPrice || ''}
                           required
                           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />

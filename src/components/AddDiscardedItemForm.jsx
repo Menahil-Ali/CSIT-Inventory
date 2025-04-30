@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
 const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
+    procurement: "",
     item: "",
     quantity: "",
     date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
@@ -11,18 +12,27 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
     discardedBy: ""
   });
 
-  const inventoryItems = [
-    "Laptop",
-    "Mouse",
-    "Notebook",
-    "Monitor",
-    "Keyboard",
-    "Printer",
-    "Chair",
-    "Desk",
-    "Projector",
-    "Tablet"
-  ];
+  // Mock procurement data - replace with actual API call
+  const [procurements, setProcurements] = useState([
+    {
+      id: "PO-2023-001",
+      supplier: "Tech Solutions Inc.",
+      items: ["Laptop", "Monitor", "Keyboard"]
+    },
+    {
+      id: "PO-2023-002",
+      supplier: "Office Supplies Ltd.",
+      items: ["Mouse", "Notebook", "Printer"]
+    },
+    {
+      id: "PO-2023-003",
+      supplier: "Furniture World",
+      items: ["Chair", "Desk"]
+    }
+  ]);
+
+  // State for filtered items based on selected procurement
+  const [filteredItems, setFilteredItems] = useState([]);
 
   const discardReasons = [
     "Dumped",
@@ -41,6 +51,17 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
     "Robert Wilson"
   ];
 
+  // Update filtered items when procurement changes
+  useEffect(() => {
+    if (formData.procurement) {
+      const selectedProcurement = procurements.find(p => p.id === formData.procurement);
+      setFilteredItems(selectedProcurement ? selectedProcurement.items : []);
+      setFormData(prev => ({ ...prev, item: "" })); // Reset item selection
+    } else {
+      setFilteredItems([]);
+    }
+  }, [formData.procurement, procurements]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -57,7 +78,6 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-        {/* Scrollable Content Area */}
         <div className="p-6 overflow-y-auto flex-1">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-semibold">Record Discarded Items</h3>
@@ -75,6 +95,26 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
           
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
+              {/* Procurement Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Procurement *</label>
+                <select
+                  name="procurement"
+                  value={formData.procurement}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a procurement</option>
+                  {procurements.map((procurement, index) => (
+                    <option key={index} value={procurement.id}>
+                      {procurement.id} - {procurement.supplier}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Items Dropdown (dynamically filtered) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Item *</label>
                 <select
@@ -83,9 +123,10 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
                   onChange={handleChange}
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  disabled={!formData.procurement}
                 >
-                  <option value="">Select an item</option>
-                  {inventoryItems.map((item, index) => (
+                  <option value="">{formData.procurement ? "Select an item" : "First select a procurement"}</option>
+                  {filteredItems.map((item, index) => (
                     <option key={index} value={item}>{item}</option>
                   ))}
                 </select>
@@ -164,7 +205,6 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
           </form>
         </div>
 
-        {/* Sticky Footer with Buttons */}
         <div className="p-4 border-t bg-white sticky bottom-0">
           <div className="flex justify-end space-x-3">
             <button
@@ -177,7 +217,8 @@ const AddDiscardedItemForm = ({ onClose, onSubmit }) => {
             <button
               type="submit"
               onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              disabled={!formData.procurement || !formData.item}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               Record Discard
             </button>
