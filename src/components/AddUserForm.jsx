@@ -7,7 +7,7 @@ const AddUserForm = ({ user, departments, onClose, onSubmit }) => {
     email: '',
     role: 'User',
     department: departments[0] || '',
-    status: 'Active'
+    // status: 'Active'
   });
 
   useEffect(() => {
@@ -17,7 +17,7 @@ const AddUserForm = ({ user, departments, onClose, onSubmit }) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        status: user.status
+        // status: user.status
       });
     }
   }, [user]);
@@ -115,7 +115,7 @@ const AddUserForm = ({ user, departments, onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div>
+            {/* <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Status
               </label>
@@ -129,7 +129,7 @@ const AddUserForm = ({ user, departments, onClose, onSubmit }) => {
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-            </div>
+            </div> */}
           </div>
 
           <div className="mt-6 flex justify-end space-x-3">
