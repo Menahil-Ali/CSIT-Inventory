@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import AddProcurementForm from "../components/AddProcurementForm";
-import { categories } from "../constants/categories";
+import { FaEye, FaEdit, FaFilePdf, FaFileWord, FaFileAlt } from "react-icons/fa";
+import ProcurementDetailsModal from "../components/ProcurementDetailsModal";
 
 const Procurements = () => {
   const [procurements, setProcurements] = useState([]);
@@ -13,6 +14,9 @@ const Procurements = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
+  const [selectedProcurement, setSelectedProcurement] = useState(null);
+  const [viewMode, setViewMode] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     fetchProcurements();
@@ -21,24 +25,82 @@ const Procurements = () => {
   const fetchProcurements = async () => {
     try {
       setLoading(true);
-      // Mock data - replace with API call
+      // Mock data with support for multiple items
       const mockData = [
         {
           id: 1,
           orderNumber: "PO-2023-001",
+          items: [
+            {
+              name: "Damaged Computer Monitor",
+              type: "Hardware",
+              quantity: 5,
+              unitPrice: "N/A",
+              total: "N/A"
+            }
+          ],
+          type: "Purchase",
           supplier: "Tech Solutions Inc.",
-          orderDate: "6/1/2023",
-          totalAmount: 57500.00,
+          date: "May 15, 2023",
+          documentType: "Purchase Order",
+          addedBy: "John Smith",
           document: { type: "pdf", name: "invoice.pdf", url: "#" },
+          notes: "Replacement for damaged units"
         },
         {
           id: 2,
           orderNumber: "PO-2023-002",
-          supplier: "Office Supplies Ltd.",
-          orderDate: "5/15/2023",
-          totalAmount: 5350.00,
-          document: { type: "image", name: "receipt.jpg", url: "#" },
+          items: [
+            {
+              name: "Office Desk",
+              type: "Furniture",
+              quantity: 8,
+              unitPrice: "$150",
+              total: "$1,200"
+            },
+            {
+              name: "Executive Chair",
+              type: "Furniture",
+              quantity: 4,
+              unitPrice: "$250",
+              total: "$1,000"
+            }
+          ],
+          type: "Purchase",
+          supplier: "Office Furniture Co.",
+          date: "Jun 2, 2023",
+          documentType: "MOU",
+          addedBy: "Sarah Johnson",
+          document: { type: "pdf", name: "mou.pdf", url: "#" },
+          notes: "For new office setup"
         },
+        {
+          id: 3,
+          orderNumber: "PO-2023-003",
+          items: [
+            {
+              name: "Printer Paper",
+              type: "Consumable",
+              quantity: 50,
+              unitPrice: "$5",
+              total: "$250"
+            },
+            {
+              name: "Ink Cartridges",
+              type: "Consumable",
+              quantity: 10,
+              unitPrice: "$35",
+              total: "$350"
+            }
+          ],
+          type: "Purchase",
+          supplier: "Office Depot",
+          date: "Jun 10, 2023",
+          documentType: "Internal Memo",
+          addedBy: "Emily Davis",
+          document: { type: "doc", name: "memo.doc", url: "#" },
+          notes: "Monthly office supplies"
+        }
       ];
       setProcurements(mockData);
     } finally {
@@ -49,10 +111,22 @@ const Procurements = () => {
   // Get unique suppliers for filter dropdown
   const uniqueSuppliers = ["All Suppliers", ...new Set(procurements.map(p => p.supplier))];
 
+  // Calculate total for procurement with multiple items
+  const calculateTotal = (procurement) => {
+    if (procurement.items.length === 1) {
+      return procurement.items[0].total;
+    }
+    return procurement.items.reduce((sum, item) => {
+      const value = item.total ? parseFloat(item.total.replace('$', '')) : 0;
+      return sum + value;
+    }, 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
+
   // Filter procurements
   const filteredProcurements = procurements.filter((procurement) => {
     const matchesSearch = procurement.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         procurement.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+                         procurement.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         procurement.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesSupplier = supplierFilter === "All Suppliers" || procurement.supplier === supplierFilter;
     const matchesTime = timeFilter === "All Time" || true;
@@ -67,21 +141,38 @@ const Procurements = () => {
     currentPage * rowsPerPage
   );
 
-  const handleRefresh = () => {
-    setLoading(true);
-    fetchProcurements();
-  };
-
   const handleDocumentClick = (document) => {
     if (document) {
       alert(`Opening document: ${document.name}`);
     }
   };
 
-  // Function to create a new item (mock implementation)
-  const createNewItem = async (itemData) => {
-    console.log("Creating new item:", itemData);
-    return { success: true, item: itemData };
+  const handleView = (procurement) => {
+    setSelectedProcurement(procurement);
+    setViewMode(true);
+    setEditMode(false);
+  };
+
+  const handleEdit = (procurement) => {
+    setSelectedProcurement(procurement);
+    setViewMode(false);
+    setEditMode(true);
+  };
+
+  const handleSave = (updatedProcurement) => {
+    setProcurements(procurements.map(p => 
+      p.id === updatedProcurement.id ? updatedProcurement : p
+    ));
+    setEditMode(false);
+    setSelectedProcurement(null);
+  };
+
+  const getDocumentIcon = (type) => {
+    switch(type) {
+      case 'pdf': return <FaFilePdf className="text-red-500" />;
+      case 'doc': return <FaFileWord className="text-blue-500" />;
+      default: return <FaFileAlt className="text-gray-500" />;
+    }
   };
 
   return (
@@ -89,44 +180,35 @@ const Procurements = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar title="Procurement Management" />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold">
+                <h1 className="text-2xl font-semibold text-gray-800">
                   Manage and track all procurement orders
-                </h3>
+                </h1>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleRefresh}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg flex items-center"
-                >
-                  <span className="mr-2">↻</span>
-                  Refresh
-                </button>
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
-                >
-                  <span className="mr-2">+</span>
-                  Add New Procurement
-                </button>
-              </div>
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+              >
+                <span className="mr-2">+</span>
+                Add New Procurement
+              </button>
             </div>
 
-            {/* Filters Section - Removed search bar and status filter */}
+            {/* Filters Section */}
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <input
                   type="text"
-                  placeholder="Search by order number or supplier..."
+                  placeholder="Search by item, order number or supplier..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 
                 <select
@@ -135,7 +217,7 @@ const Procurements = () => {
                     setSupplierFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="border rounded px-3 py-2 text-sm"
+                  className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {uniqueSuppliers.map((supplier) => (
                     <option key={supplier} value={supplier}>
@@ -150,7 +232,7 @@ const Procurements = () => {
                     setTimeFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="border rounded px-3 py-2 text-sm"
+                  className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option>All Time</option>
                   <option>Last 7 days</option>
@@ -160,65 +242,88 @@ const Procurements = () => {
               </div>
             </div>
 
-            {/* Procurement Table - Removed status column */}
+            {/* Procurement Table */}
             {loading ? (
-              <div className="text-center py-8">Loading procurements...</div>
+              <div className="text-center py-8 text-gray-500">Loading procurements...</div>
             ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order Number
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Supplier
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order Date
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total Amount
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Document
-                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {paginatedProcurements.length > 0 ? (
                         paginatedProcurements.map((procurement) => (
-                          <tr key={procurement.id}>
+                          <tr key={procurement.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {procurement.orderNumber}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              <div className="space-y-1">
+                                {procurement.items.map((item, index) => (
+                                  <div key={index}>
+                                    <span className="font-medium">{item.name}</span>
+                                    <div className="text-xs text-gray-400">
+                                      {item.quantity} × {item.unitPrice}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {procurement.supplier}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {procurement.orderDate}
+                              {procurement.date}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              ${procurement.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {calculateTotal(procurement)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {procurement.document ? (
                                 <button
                                   onClick={() => handleDocumentClick(procurement.document)}
-                                  className="text-blue-600 hover:text-blue-900 hover:underline"
+                                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-900 hover:underline"
                                 >
-                                  {procurement.document.name}
+                                  {getDocumentIcon(procurement.document.type)}
+                                  <span>{procurement.document.name}</span>
                                 </button>
                               ) : (
-                                <span className="text-gray-400">No document</span>
+                                <span className="text-gray-400">None</span>
                               )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => handleView(procurement)}
+                                  className="text-blue-600 hover:text-blue-900 transition-colors"
+                                  title="View Details"
+                                >
+                                  <FaEye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(procurement)}
+                                  className="text-green-600 hover:text-green-900 transition-colors"
+                                  title="Edit"
+                                >
+                                  <FaEdit className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                          <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
                             No procurements found matching your criteria
                           </td>
                         </tr>
@@ -229,8 +334,8 @@ const Procurements = () => {
 
                 {/* Pagination Controls */}
                 {filteredProcurements.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
-                    <div className="text-sm text-gray-600">
+                  <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4 text-sm">
+                    <div className="text-gray-600">
                       Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
                       {Math.min(
                         currentPage * rowsPerPage,
@@ -240,14 +345,14 @@ const Procurements = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">Rows per page:</span>
+                      <span className="text-gray-600">Rows per page:</span>
                       <select
                         value={rowsPerPage}
                         onChange={(e) => {
                           setRowsPerPage(Number(e.target.value));
                           setCurrentPage(1);
                         }}
-                        className="border rounded px-3 py-1 text-sm"
+                        className="border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         {[5, 10, 20, 50].map((num) => (
                           <option key={num} value={num}>
@@ -261,7 +366,7 @@ const Procurements = () => {
                       <button
                         onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                         disabled={currentPage === 1}
-                        className="px-3 py-1 border rounded disabled:opacity-50"
+                        className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
                       >
                         Previous
                       </button>
@@ -278,11 +383,11 @@ const Procurements = () => {
                             <button
                               key={page}
                               onClick={() => setCurrentPage(page)}
-                              className={`px-3 py-1 border rounded ${
+                              className={`px-3 py-1 border rounded-md ${
                                 currentPage === page
-                                  ? "bg-blue-100 text-blue-700"
-                                  : ""
-                              }`}
+                                  ? "bg-blue-600 text-white border-blue-600"
+                                  : "border-gray-300 hover:bg-gray-50"
+                              } transition-colors`}
                             >
                               {page}
                             </button>
@@ -293,7 +398,7 @@ const Procurements = () => {
                       <button
                         onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 border rounded disabled:opacity-50"
+                        className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
                       >
                         Next
                       </button>
@@ -308,27 +413,30 @@ const Procurements = () => {
 
       {/* Add Procurement Form */}
       {showForm && (
-              <AddProcurementForm 
-                categories={categories}
-                onClose={() => setShowForm(false)} 
-                onSubmit={async (data) => {
-                  console.log("New procurement:", data);
-                  
-                  // If this is a new item (not selected from existing inventory)
-                  if (!data.itemId || data.itemId === "") {
-                    // Create the new item
-                    const itemResponse = await createNewItem(data.newItem);
-                    if (itemResponse.success) {
-                      console.log("Item created successfully:", itemResponse.item);
-                    }
-                  }
-                  
-                  setShowForm(false);
-                  handleRefresh();
-                }} 
-              />
-            )}
-         </>
+        <AddProcurementForm 
+          onClose={() => setShowForm(false)} 
+          onSubmit={async (data) => {
+            console.log("New procurement:", data);
+            setShowForm(false);
+            fetchProcurements();
+          }} 
+        />
+      )}
+
+      {/* View/Edit Procurement Modal */}
+      {selectedProcurement && (
+        <ProcurementDetailsModal
+          procurement={selectedProcurement}
+          mode={editMode ? "edit" : "view"}
+          onClose={() => {
+            setSelectedProcurement(null);
+            setViewMode(false);
+            setEditMode(false);
+          }}
+          onSave={handleSave}
+        />
+      )}
+    </>
   );
 };
 
