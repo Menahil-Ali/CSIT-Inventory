@@ -1,5 +1,6 @@
-import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 
+import React from 'react';
+import { FaMapMarkerAlt, FaEdit, FaTrash } from 'react-icons/fa';
 const UserTable = ({ users, loading, onEdit, onDelete }) => {
   if (loading) {
     return (
@@ -27,7 +28,7 @@ const UserTable = ({ users, loading, onEdit, onDelete }) => {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EMAIL</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ROLE</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DEPARTMENT</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+            {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th> */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
           </tr>
         </thead>
@@ -39,7 +40,7 @@ const UserTable = ({ users, loading, onEdit, onDelete }) => {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{user.email}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.department}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              {/* <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   user.status === 'Active' 
                     ? 'bg-green-100 text-green-800' 
@@ -47,26 +48,23 @@ const UserTable = ({ users, loading, onEdit, onDelete }) => {
                 }`}>
                   {user.status}
                 </span>
-              </td>
+              </td> */}
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => onEdit(user)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Edit"
-                  >
-                    <FiEdit2 className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(user.id)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Delete"
-                  >
-                    <FiTrash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </td>
+                                <button 
+                                  onClick={() => onEdit(user)}
+                                  className="text-blue-600 hover:text-blue-900 mr-3"
+                                >
+                                  <FaEdit />
+                                </button>
+                                <button 
+                                  onClick={() => onDelete(user.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  <FaTrash />
+                                </button>
+                              </td>
             </tr>
+            
           ))}
         </tbody>
       </table>
