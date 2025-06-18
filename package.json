@@ -1,6 +1,7 @@
 {
   "name": "labinventory",
   "private": true,
+  "homepage": "https://menahil-ali.github.io/CSIT-Inventory",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
